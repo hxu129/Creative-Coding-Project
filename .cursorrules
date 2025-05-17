@@ -162,60 +162,71 @@ The user wants to implement features described in an external document (`annotat
 2.  **Investigation (Done)**: Determined DeepFace primarily provides discrete emotions. Decided to map discrete emotions to valence/arousal scores.
 3.  **Initial Implementation (Done)**:
     *   Implemented Emotion-to-Valence/Arousal Mapping.
-    *   Modified `emotion_fractal.py` for basic dynamic fractal generation:
-        *   Discrete emotion selects base Julia `c`.
-        *   Valence controls colormap.
-        *   Arousal controls `max_iter`.
-        *   Side-by-side display.
-4.  **Enhancement - Continuous Dynamics & Smoother Transitions (Current Focus)**:
-    *   **Implement Continuous Zoom**:
-        *   Modify `EmotionFractalGenerator` to store and update view window parameters (`xmin`, `xmax`, `ymin`, `ymax`) for the Julia set in each frame to create a constant zoom-in effect.
-        *   Fractal will regenerate every frame.
-    *   **Integrate Finer Emotional Detail into Fractal Structure**:
-        *   Modify Julia `c` parameter calculation. The base `c` (from discrete emotion) will have its real part modulated by `current_arousal` and its imaginary part modulated by `current_valence`. This will make the fractal shape more continuously responsive.
-    *   **Implement Smooth Transitions for `c`, `max_iter`**:
-        *   When dominant discrete emotion changes, interpolate `c` and `max_iter` from their current values (which are already affected by V/A and zoom) to new target values over a short duration.
-        *   **Address Colormap Transitions**: Determine a strategy for colormap changes during emotion shifts (e.g., quick switch after `c` interpolation, or a fade if feasible).
-5.  **Testing and Refinement**:
-    *   User tests enhanced script.
-    *   Refine zoom speed, V/A influence factors on `c`, transition speeds, and overall aesthetics.
-    *   Address any performance issues arising from per-frame fractal regeneration.
-6.  **Documentation and Handover**:
+    *   Modified `emotion_fractal.py` for basic dynamic fractal generation.
+4.  **Enhancement - Continuous Dynamics & Smoother Transitions (Previous Iterations Done)**:
+    *   Implemented Continuous Zoom & V/A Modulated `c`.
+    *   Implemented Smooth Parameter Transitions (Discrete Emotion Change - Phase 1: `c`, `max_iter`).
+    *   Refined Transitions & Performance (Reduced fractal resolution, eliminated zoom reset, interpolated zoom center).
+5.  **Major Refactor - Fully Continuous V/A Driven Fractals (Done)**:
+    *   **Implemented Smooth V/A Input (Done)**: `current_valence` and `current_arousal` are now interpolated towards target V/A values (derived from discrete emotion detection) over a short duration (`va_transition_duration`), making the primary emotional input itself smooth.
+    *   **Implemented Direct V/A to Fractal Structure (`c`) (Done)**: Smoothed V/A are directly mapped to Julia `c` real/imaginary parts via new helper functions (`_map_arousal_to_c_real`, `_map_valence_to_c_imag`), removing reliance on pre-defined `c` values for discrete emotions.
+    *   **Implemented Direct V/A to Zoom Center (Done)**: Smoothed V/A are directly mapped to `zoom_center_x` and `zoom_center_y` via new helper functions (`_map_arousal_to_zoom_center_x`, `_map_valence_to_zoom_center_y`).
+    *   **Implemented Dynamic Continuous Colormap (Done - Initial Version)**: A new `_generate_continuous_colormap(valence)` function using `LinearSegmentedColormap.from_list()` has been implemented to generate colormaps dynamically based on valence. (Further refinement of color points might be needed based on feedback).
+    *   **Removed Discrete Emotion Parameter Tables for Fractals (Done)**: `self.emotion_parameters` is no longer used for selecting fractal `c` values.
+    *   **Refactored Core Update Logic (Done)**: All fractal parameters (`current_julia_c`, `max_iter`, `zoom_center_x`, `zoom_center_y`, `current_colormap_object`) are now calculated every frame based on the *instantaneous* smoothed V/A values in `_update_fractal_parameters_from_va()`. The old discrete transition logic for `c` and `max_iter` has been removed.
+6.  **Testing and Refinement (Current Focus)**:
+    *   User tests the majorly refactored script.
+    *   Refine V/A mappings, transition speeds, colormap aesthetics, and overall performance based on feedback.
+    *   Address any "fractal disappearing" issues if they persist.
+    *   **Add Randomness for Color Diversity (Done)**: Increased random hue offset in `_generate_artistic_colormap`.
+    *   **Add Randomness for Image Complexity (Done - Current)**: Introduced random offsets to target Julia `c` values (on emotion change) and to `max_iter` (per frame) to increase structural diversity and detail variation.
+7.  **Documentation and Handover**:
     *   Update user instructions.
 
 ## Current Status / Progress Tracking
 
-*   Initial request received. User summary of `annotated-proposal.pdf` provided.
-*   Researched DeepFace: Confirmed it primarily outputs discrete emotions.
-*   Decision: Mapped discrete emotions to approximate Valence/Arousal scores.
-*   Implemented core features (V/A mapping, basic fractal parameters, dual display).
-*   User Feedback Received: Current fractal generation is not smooth enough, static patterns are monotonous.
-*   **Implemented Enhancements (Phase 1 of 2 for current user request)**:
-    *   **Continuous Zoom**: Fractal view now continuously zooms in. Zoom resets on discrete emotion change.
-    *   **V/A Influence on Fractal Structure**: Julia `c` parameter's real part is now modulated by arousal, and imaginary part by valence, making the shape more continuously responsive.
-    *   Fractal regenerates every frame.
-*   **Next**: User to test these new dynamic features. Then, implement smooth transitions for `c`, `max_iter`, and colormap when dominant discrete emotion changes.
+*   (Previous statuses reflect incremental improvements: initial V/A mapping, basic fractal display, continuous zoom, V/A modulation of `c`, smooth transitions for `c`/`max_iter` between discrete emotions, performance tweaks like resolution reduction and zoom center interpolation.)
+*   User Feedback (Post "Iteration 4"): Requested a system *entirely* driven by continuous V/A, not discrete emotions, for fractal control. Colors were too abrupt. Wanted no sudden changes; all processes continuous. "Fractal disappearing" (时有时无) was a concern.
+*   **Implemented Major Refactor (Iteration 5 - Fully Continuous V/A System)**:
+    *   Introduced smoothing for `current_valence` and `current_arousal` themselves.
+    *   All fractal parameters (`c`, `max_iter`, `zoom_center`, colormap) are now derived *every frame* from these continuously smoothed V/A values.
+    *   New mapping functions: V/A -> `c` (real/imaginary), V/A -> `zoom_center` (x/y).
+    *   Implemented `_generate_continuous_colormap` for dynamic colormap generation from valence.
+    *   Removed old discrete emotion-based parameter tables (for `c`) and associated transition logic.
+    *   Animation interval set to 33ms (~30 FPS target).
+*   **User Feedback (Post Iteration 5.1 - Color Randomness)**: Requested more randomness for color generation. Implemented larger random hue offset in `_generate_artistic_colormap`.
+*   **User Feedback (Post Iteration 5.2 - Complexity Randomness)**: Requested more randomness for image complexity on top of existing logic.
+*   **Implemented Complexity Randomness (Current)**: 
+    *   Added `self.c_complexity_random_factor` and `self.max_iter_complexity_random_span` to `__init__`.
+    *   Modified `update_animation` to add a random offset (controlled by `c_complexity_random_factor`) to the `target_julia_c` when it's updated due to emotion/V-A changes. The result is clipped to global C bounds.
+    *   Modified `_get_fractal_max_iter` to add a random offset (controlled by `max_iter_complexity_random_span`) to the `max_iter` value calculated from arousal. This introduces per-frame randomness to iteration count, with a minimum floor.
+*   **Next**: User to test this version of `emotion_fractal.py` with added randomness for both color and complexity.
 
 ## Next Steps and Action Items
 
 1.  **User**:
-    *   Test the `emotion_fractal.py` script with the new continuous zoom and V/A-modulated `c` value.
+    *   Test the `emotion_fractal.py` script with the latest changes (randomness for color diversity and image complexity).
     *   Provide feedback on:
-        *   Zoom speed and centering.
-        *   Visual effect of V/A on fractal shape (sensitivity of `AROUSAL_TO_CREAL_FACTOR`, `VALENCE_TO_CIMAG_FACTOR`).
-        *   Overall performance (smoothness vs. choppiness).
-        *   Appropriateness of zoom reset on discrete emotion change.
-2.  **Executor (AI Assistant)**: Based on feedback:
-    *   Tune zoom, V/A factors if necessary.
-    *   Proceed to **Implement Smooth Transitions (Phase 2)**:
-        *   When dominant discrete emotion changes, interpolate `current_julia_c` (the V/A modulated one) towards its new target value.
-        *   Interpolate `max_iter` towards its new target value.
-        *   Develop and implement a strategy for colormap transitions.
-    *   Update "Current Status" and "Executor's Feedback".
-3.  **Planner (AI Assistant)**: Review progress and update plan if new major challenges or directions emerge.
+        *   The perceived increase in color variety and the aesthetic quality of random color shifts.
+        *   The perceived increase in fractal structural complexity and diversity due to randomized `c` values.
+        *   The effect of per-frame randomized `max_iter` on visual detail and smoothness.
+        *   Whether the system now feels more dynamic and less predictable in its visual output, while still being responsive to emotions.
+        *   Overall application responsiveness and camera feed smoothness.
+        *   Whether the "fractal disappearing" (时有时无) issue is resolved or improved.
+2.  **Executor (AI Assistant)**: Based on feedback, address any remaining issues or refine:
+    *   Randomness factors (`c_complexity_random_factor`, `max_iter_complexity_random_span`, hue randomness in colormap).
+    *   V/A to `c`, `zoom_center`, `max_iter` base mapping ranges and sensitivity if still needed.
+    *   Colormap generation logic (e.g., color points in `_generate_artistic_colormap`) if further adjustments are desired.
+    *   V/A smoothing duration (`va_transition_duration`).
+    *   Performance optimizations if needed.
+3.  **Planner (AI Assistant)**: Review feedback. If current approach is satisfactory, confirm completion of user's core requests for a dynamic, continuous, and smooth V/A-driven fractal evolution with sufficient visual diversity. Otherwise, plan next iteration of refinements.
 
 ## Executor's Feedback or Assistance Requests
 
-*   Implemented continuous zoom and V/A modulation of the Julia `c` parameter.
-*   The script now regenerates fractals every frame, increasing dynamism but also computational load. Performance feedback is crucial.
-*   Awaiting user feedback on these changes before proceeding to implement smooth transitions between discrete emotion states.
+*   Completed modifications to `emotion_fractal.py` to introduce further randomness for image complexity, as requested.
+*   Key changes for complexity enhancement include:
+    *   Initializing `self.c_complexity_random_factor = 0.08` and `self.max_iter_complexity_random_span = 40`.
+    *   When a new emotion/V-A state sets a `target_julia_c`, a random offset (scaled by `c_complexity_random_factor`) is added to both its real and imaginary parts before the transition to this new target begins. Results are clipped.
+    *   The `_get_fractal_max_iter` function now adds a random value (within `+/- max_iter_complexity_random_span / 2`) to the arousal-derived iteration count each frame, ensuring `max_iter` doesn't drop below a minimum.
+*   These changes are in addition to the previously implemented increase in random hue offset for color diversity.
+*   Awaiting user feedback on this version, specifically concerning the perceived impact on color variety, structural complexity, detail fluctuation, and overall dynamism of the fractal visuals.
