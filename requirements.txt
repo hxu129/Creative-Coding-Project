@@ -26,6 +26,9 @@ yfinance>=0.2.36
 pandas>=2.1.4
 matplotlib>=3.8.2
 seaborn>=0.13.1
+numpy>=1.20.0
+opencv-python>=4.5.0
+deepface>=0.0.93
 
 # Tabulate for pretty-printing tables
 tabulate
